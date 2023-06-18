@@ -1,3 +1,4 @@
+
 # un-cleaned imports
 import random
 import asyncio
@@ -50,6 +51,7 @@ generalID = 1112913686626054188
 async def on_ready():
     await tree.sync()
     print(f'Logged in as {client.user}')
+    await client.loop.create_task(list_servers())
 
 @tree.command(name='square',
                 description="Squares a number for you",)
@@ -75,4 +77,16 @@ async def spamarti(interaction: discord.Interaction, string: str):
     await user.send(string)
     await interaction.response.send_message(f"Sent '{string}' to Arti_Creep!")
 
+@tree.command(name='random',
+                description="Gives a random number from 1 to 1000")
+async def rand(interaction: discord.Interaction):
+    my_num = random.randint(1,1000)
+    await interaction.response.send_message(my_num)
+
+async def list_servers():
+    await client.wait_until_ready()
+    print("Current servers:")
+    for server in client.guilds:
+        print(server.name)
+        
 client.run(token)
