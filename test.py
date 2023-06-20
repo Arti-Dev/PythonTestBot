@@ -1,20 +1,10 @@
 
-# un-cleaned imports
-import random
-import asyncio
-import aiohttp
-import json
-import discord
-from discord import Game
-from discord import app_commands
-from discord.ext.commands import Bot
-import traceback
-import sys
-from discord.ext import tasks
-import threading
-import yaml
 import os.path
+import random
 
+import discord
+import yaml
+from discord import app_commands
 
 # check if the config file exists
 path = './config.yml'
@@ -67,8 +57,9 @@ async def square(interaction: discord.Interaction, number: float):
 @tree.command(name='say',
               description="Repeats-after-you")
 async def say(interaction: discord.Interaction, string: str):
-    await interaction.response.send_message("Sent!", ephemeral=True, delete_after=5)
     await interaction.channel.send(string)
+    await interaction.response.send_message("Sent!", ephemeral=True, delete_after=5)
+
 
 @tree.command(name='spamarti',
               description="all of these commands start with s")
@@ -88,5 +79,6 @@ async def list_servers():
     print("Current servers:")
     for server in client.guilds:
         print(server.name)
-        
+
+print(token)
 client.run(token)
