@@ -49,7 +49,7 @@ def postnewthread(rss, thread_entry):
     title = thread_entry.title
     link = thread_entry.link
     creator = thread_entry.author
-    timestamp = hypixelDateToTimestamp(thread_entry.published)
+    timestamp = hypixel_date_to_timestamp(thread_entry.published)
     thread_guid = thread_entry.guid
     json = {
         "content": f"New thread posted <t:{timestamp}:R>",
@@ -67,10 +67,10 @@ def postnewthread(rss, thread_entry):
     else:
         print(f"Successfully posted: {forum_title}\n{title}\n{link}\n{creator}\n{timestamp}\nguid: {thread_guid}")
 
-def hypixelDateToTimestamp(date):
+
+def hypixel_date_to_timestamp(date):
     time = parser.parse(date)
     return int(time.timestamp())
-
 
 
 # maybe we'll have a task in here?
