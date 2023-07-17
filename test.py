@@ -1,13 +1,91 @@
 import os.path
 import random
 
-import dateutil.parser as parser
 import discord
 import feedparser
 import requests
 import yaml
 from discord import app_commands
 from discord.ext import tasks
+
+from utils import hypixel_date_to_timestamp
+
+
+class Client(discord.Client):
+    def __init__(self):
+        super().__init__(intents=intents)
+
+        # load bestguid
+        guid_file = open('bestguid.txt', 'r')
+        self.best_guid = int(guid_file.readlines()[0])
+        guid_file.close()
+
+    async def setup_hook(self) -> None:
+        self.fetch_hypixel_task.start()
+
+    async def on_ready(self):
+        await tree.sync()
+        print(f'Logged in as {client.user}')
+        await client.loop.create_task(list_servers())
+
+    @tasks.loop(seconds=60)
+    async def fetch_hypixel_task(self):
+        print(f"Fetching from Hypixel RSS!")
+        rss = feedparser.parse("https://hypixel.net/the-pit/index.rss")
+        entries = rss.entries
+        print(f"Current best guid is {self.best_guid}")
+        guid_to_entry = dict()
+        for entry in entries:
+            guid = int(entry.guid)
+            if guid > self.best_guid:
+                guid_to_entry[int(entry.guid)] = entry
+
+        guids = list(guid_to_entry.keys())
+        guids.sort()
+
+        # post only the first thread that is newer than the previous posted thread
+        if len(guids) > 0:
+            target_guid = guids[0]
+            post_new_thread(rss, guid_to_entry[target_guid])
+            self.best_guid = target_guid
+            print(f"New best guid is {self.best_guid}. Writing to disk.")
+            if len(guids) > 1:
+                print(f"There are {len(guids) - 1} thread(s) in queue. They will be addressed in the next cycle.")
+            save_new_guid(self.best_guid)
+        else:
+            print("No new threads found!")
+        print("------------")
+
+
+def save_new_guid(new_guid):
+    best_guid_file = open('bestguid.txt', 'w')
+    best_guid_file.write(str(new_guid))
+    best_guid_file.close()
+
+
+def post_new_thread(rss, thread_entry):
+    forum_title = rss.feed.title
+    title = thread_entry.title
+    link = thread_entry.link
+    creator = thread_entry.author
+    timestamp = hypixel_date_to_timestamp(thread_entry.published)
+    thread_guid = thread_entry.guid
+    json = {
+        "content": f"New thread posted <t:{timestamp}:R>",
+        "embeds": [
+            {"title": forum_title,
+             "color": 10246582,
+             "description": f'[{title}]({link})',
+             "footer": {
+                 "text": f'Thread by {creator}'
+             }}
+        ]}
+    r = requests.post(url=url, json=json)
+    if r.status_code != 204:
+        print(f"There was an error posting the latest thread. guid: {thread_guid}")
+    else:
+        print(f"Successfully posted: {forum_title}\n{title}\n{link}\n{creator}\n{timestamp}\nguid: {thread_guid}")
+
 
 # check if the config file exists
 path = './config.yml'
@@ -36,89 +114,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
 intents.members = True
-
-
-def savenewguid(newguid):
-    best_guid_file = open('bestguid.txt', 'w')
-    best_guid_file.write(str(newguid))
-    best_guid_file.close()
-
-
-def postnewthread(rss, thread_entry):
-    forum_title = rss.feed.title
-    title = thread_entry.title
-    link = thread_entry.link
-    creator = thread_entry.author
-    timestamp = hypixel_date_to_timestamp(thread_entry.published)
-    thread_guid = thread_entry.guid
-    json = {
-        "content": f"New thread posted <t:{timestamp}:R>",
-        "embeds": [
-            {"title": forum_title,
-             "color": 10246582,
-             "description": f'[{title}]({link})',
-             "footer": {
-                 "text": f'Thread by {creator}'
-             }}
-        ]}
-    r = requests.post(url=url, json=json)
-    if r.status_code != 204:
-        print(f"There was an error posting the latest thread. guid: {thread_guid}")
-    else:
-        print(f"Successfully posted: {forum_title}\n{title}\n{link}\n{creator}\n{timestamp}\nguid: {thread_guid}")
-
-
-def hypixel_date_to_timestamp(date):
-    time = parser.parse(date)
-    return int(time.timestamp())
-
-
-# maybe we'll have a task in here?
-class Client(discord.Client):
-    def __init__(self):
-        super().__init__(intents=intents)
-
-        # load bestguid
-        guid_file = open('bestguid.txt', 'r')
-        self.best_guid = int(guid_file.readlines()[0])
-        guid_file.close()
-
-    async def setup_hook(self) -> None:
-        self.fetchhypixeltask.start()
-
-    async def on_ready(self):
-        await tree.sync()
-        print(f'Logged in as {client.user}')
-        await client.loop.create_task(list_servers())
-
-    @tasks.loop(seconds=60)
-    async def fetchhypixeltask(self):
-        print(f"Fetching from Hypixel RSS!")
-        rss = feedparser.parse("https://hypixel.net/the-pit/index.rss")
-        entries = rss.entries
-        print(f"Current best guid is {self.best_guid}")
-        guidtoentry = dict()
-        for entry in entries:
-            guid = int(entry.guid)
-            if guid > self.best_guid:
-                guidtoentry[int(entry.guid)] = entry
-
-        guids = list(guidtoentry.keys())
-        guids.sort()
-
-        # post only the first thread that is newer than the previous posted thread
-        if len(guids) > 0:
-            target_guid = guids[0]
-            postnewthread(rss, guidtoentry[target_guid])
-            self.best_guid = target_guid
-            print(f"New best guid is {self.best_guid}. Writing to disk.")
-            if len(guids) > 1:
-                print(f"There are {len(guids) - 1} thread(s) in queue. They will be addressed in the next cycle.")
-            savenewguid(self.best_guid)
-        else:
-            print("No new threads found!")
-        print("------------")
-
 
 client = Client()
 tree = app_commands.CommandTree(client)
