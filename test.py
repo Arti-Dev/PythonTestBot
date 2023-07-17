@@ -8,7 +8,27 @@ import yaml
 from discord import app_commands
 from discord.ext import tasks
 
-from utils import hypixel_date_to_timestamp
+from utils import hypixel_date_to_timestamp, save_new_guid, save_default_config
+
+# check if the config file exists
+path = './config.yml'
+if not os.path.isfile(path):
+    save_default_config()
+
+# load config file
+file = open('config.yml', 'r')
+config = yaml.safe_load(file)
+
+token = config['token']
+message_id = config['message-id']
+url = config['url']
+
+file.close()
+
+# check if the last guid file exists
+path = './bestguid.txt'
+if not os.path.isfile(path):
+    raise Exception("No bestguid.txt file found in the same directory!")
 
 
 class Client(discord.Client):
@@ -27,6 +47,9 @@ class Client(discord.Client):
         await tree.sync()
         print(f'Logged in as {client.user}')
         await client.loop.create_task(list_servers())
+
+    async def on_member_join(self):
+        pass
 
     @tasks.loop(seconds=60)
     async def fetch_hypixel_task(self):
@@ -57,12 +80,6 @@ class Client(discord.Client):
         print("------------")
 
 
-def save_new_guid(new_guid):
-    best_guid_file = open('bestguid.txt', 'w')
-    best_guid_file.write(str(new_guid))
-    best_guid_file.close()
-
-
 def post_new_thread(rss, thread_entry):
     forum_title = rss.feed.title
     title = thread_entry.title
@@ -87,27 +104,12 @@ def post_new_thread(rss, thread_entry):
         print(f"Successfully posted: {forum_title}\n{title}\n{link}\n{creator}\n{timestamp}\nguid: {thread_guid}")
 
 
-# check if the config file exists
-path = './config.yml'
-if not os.path.isfile(path):
-    file = open('config.yml', 'w')
-    yaml.dump({'token': 'your mom',
-               'message-id': 1119465976149327892,
-               'url': '???'}, file)
-    file.close()
+async def list_servers():
+    await client.wait_until_ready()
+    print("Current servers:")
+    for server in client.guilds:
+        print(server.name)
 
-# check if the last guid file exists
-path = './bestguid.txt'
-if not os.path.isfile(path):
-    raise Exception("No bestguid.txt file found in the same directory!")
-
-# load config file
-file = open('config.yml', 'r')
-config = yaml.safe_load(file)
-token = config['token']
-message_id = config['message-id']
-url = config['url']
-file.close()
 
 # intents
 intents = discord.Intents.default()
@@ -154,13 +156,6 @@ async def spamarti(interaction: discord.Interaction, string: str):
 async def rand(interaction: discord.Interaction):
     my_num = random.randint(1, 1000)
     await interaction.response.send_message(my_num)
-
-
-async def list_servers():
-    await client.wait_until_ready()
-    print("Current servers:")
-    for server in client.guilds:
-        print(server.name)
 
 
 client.run(token)
