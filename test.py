@@ -1,3 +1,4 @@
+import asyncio
 import os.path
 import random
 
@@ -33,6 +34,13 @@ if not os.path.isfile(path):
 
 class Client(discord.Client):
     def __init__(self):
+
+        # intents
+        intents = discord.Intents.default()
+        intents.message_content = True
+        intents.guilds = True
+        intents.members = True
+
         super().__init__(intents=intents)
 
         # load bestguid
@@ -48,8 +56,8 @@ class Client(discord.Client):
         print(f'Logged in as {client.user}')
         await client.loop.create_task(list_servers())
 
-    async def on_member_join(self):
-        pass
+    async def on_member_join(self, member):
+        await member.send("Welcome to **putt party practice server**!")
 
     @tasks.loop(seconds=60)
     async def fetch_hypixel_task(self):
@@ -78,6 +86,11 @@ class Client(discord.Client):
         else:
             print("No new threads found!")
         print("------------")
+
+
+async def delay(coro, seconds):
+    await asyncio.sleep(seconds)
+    await coro
 
 
 def post_new_thread(rss, thread_entry):
@@ -110,12 +123,6 @@ async def list_servers():
     for server in client.guilds:
         print(server.name)
 
-
-# intents
-intents = discord.Intents.default()
-intents.message_content = True
-intents.guilds = True
-intents.members = True
 
 client = Client()
 tree = app_commands.CommandTree(client)

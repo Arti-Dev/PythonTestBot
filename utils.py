@@ -18,5 +18,5 @@ def save_default_config():
     file = open('config.yml', 'w')
     yaml.dump({'token': 'your mom',
                'message-id': 1119465976149327892,
-               'url': '???'}, file)
+               'url': 'https://example.com'}, file)
     file.close()
