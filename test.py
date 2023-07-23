@@ -83,7 +83,7 @@ class Client(discord.Client):
             print(f"{member.name} with id {member.id} joined!")
             task = self.loop.create_task(delay(
                 remove_member_from_new_members(self, member),
-                60))
+                60 * 15))
 
             self.new_members[member.id] = task
 
@@ -132,6 +132,7 @@ class Client(discord.Client):
                     await message.delete(delay=10)
                     print(f"{member.name} failed the challenge as a REGULAR user.\n"
                           f"They used the {emoji.name} emoji.")
+
 
     @tasks.loop(seconds=60)
     async def fetch_hypixel_task(self):
