@@ -107,7 +107,7 @@ class Client(discord.Client):
                                            reason="Passed the entry challenge as a new member")
                     await member.send("**Welcome to the Pit Community Discord Server!**\n"
                                       "Congratulations on passing the #read-me challenge first try!\n"
-                                      "You have been given the cosmetic \"Smartypants\" role as a bonus!\n"
+                                      "You have been given a special role as a bonus!\n"
                                       "**You may now access the rest of the server!**")
                     print(f"{member.name} PASSED the challenge as a NEW user.")
                 else:
@@ -186,14 +186,14 @@ async def remove_member_from_new_members(client, member: discord.Member):
         await member.add_roles(client.fail_role)
         await member.send("**Welcome to the Pit Community Discord Server!**\n"
                           "You did not make an attempt to complete the #read-me challenge within 15 minutes.\n"
-                          "You have been given the cosmetic \"Dumb\" role as a bonus!\n"
+                          "You have been given a special role as a bonus!\n"
                           "**You may now access the rest of the server!**")
     else:
         # The member made an attempt but did not pass within the time limit
         await member.send("**Welcome to the Pit Community Discord Server!**\n"
                           "I noticed that you attempted the #read-me challenge, but you never finished.\n"
                           "**You may now access the rest of the server!**\n"
-                          "You have been given the cosmetic \"Dumb\" role as a bonus!")
+                          "You have been given a special role as a bonus!")
 
 
 
