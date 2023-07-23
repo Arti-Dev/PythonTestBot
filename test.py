@@ -97,7 +97,7 @@ class Client(discord.Client):
             emoji = payload.emoji
             member = payload.member
 
-            if emoji.is_unicode_emoji() and ord(emoji.name) == 127881:
+            if emoji.is_unicode_emoji() and type(emoji.name) != str and ord(emoji.name) == 127881:
                 if member.id in self.new_members:
                     # there is no need for this task anymore
                     self.new_members[member.id].cancel()
