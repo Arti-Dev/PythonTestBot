@@ -97,7 +97,14 @@ class Client(discord.Client):
             emoji = payload.emoji
             member = payload.member
 
-            if emoji.is_unicode_emoji() and type(emoji.name) != str and ord(emoji.name) == 127881:
+            # todo this is hotfix code
+            code = None
+            try:
+                code = ord(emoji.name)
+            except TypeError:
+                code = 1
+
+            if emoji.is_unicode_emoji() and code == 127881:
                 if member.id in self.new_members:
                     # there is no need for this task anymore
                     self.new_members[member.id].cancel()
@@ -132,7 +139,6 @@ class Client(discord.Client):
                     await message.delete(delay=10)
                     print(f"{member.name} failed the challenge as a REGULAR user.\n"
                           f"They used the {emoji.name} emoji.")
-
 
     @tasks.loop(seconds=60)
     async def fetch_hypixel_task(self):
@@ -189,13 +195,14 @@ async def remove_member_from_new_members(client, member: discord.Member):
                           "You did not make an attempt to complete the #read-me challenge within 15 minutes.\n"
                           "You have been given a special role as a bonus!\n"
                           "**You may now access the rest of the server!**")
+        print(f"{member.name} did not attempt the challenge within 15 minutes.")
     else:
         # The member made an attempt but did not pass within the time limit
         await member.send("**Welcome to the Pit Community Discord Server!**\n"
                           "I noticed that you attempted the #read-me challenge, but you never finished.\n"
                           "**You may now access the rest of the server!**\n"
                           "You have been given a special role as a bonus!")
-
+        print(f"{member.name} attempted the challenge, but did not pass within 15 minutes.")
 
 
 def post_new_thread(client, rss, thread_entry):
