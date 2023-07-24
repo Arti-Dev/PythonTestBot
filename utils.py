@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import dateutil.parser as parser
 import os
 import yaml
@@ -24,6 +26,34 @@ def save_default_config():
                'member-role-id': 1132112701661921351,
                'pass-role-id': 1132727677317562436,
                'fail-role-id': 1132727585466503228,
-               'challenge-channel-id': 1119465092262666271},
+               'challenge-channel-id': 1119465092262666271,
+               'log-channel-id': 6,
+               'stats-channel-id': 6,
+               'stats-message-id': 6},
               file)
     file.close()
+
+
+def update_experiment_stats(passed, timed_out=False):
+    stats = fetch_experiment_stats()
+
+    # passed can be None
+    if passed:
+        stats['passed'] += 1
+    elif not passed:
+        stats['failed'] += 1
+
+    if timed_out:
+        stats['timedout'] += 1
+
+    file = open('stats.yml', 'w')
+    yaml.dump(stats, file)
+    file.close()
+
+def fetch_experiment_stats():
+    file = open('stats.yml', 'r')
+    stats = yaml.safe_load(file)
+    file.close()
+    return stats
+
+print(datetime.now())

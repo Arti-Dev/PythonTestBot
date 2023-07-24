@@ -1,6 +1,8 @@
 import asyncio
+import datetime
 import os.path
 import random
+import time
 
 import discord
 import feedparser
@@ -9,7 +11,7 @@ import yaml
 from discord import app_commands, PartialEmoji
 from discord.ext import tasks
 
-from utils import hypixel_date_to_timestamp, save_new_guid, save_default_config
+from utils import hypixel_date_to_timestamp, save_new_guid, save_default_config, update_experiment_stats, fetch_experiment_stats
 
 # check if the last guid file exists
 path = './bestguid.txt'
@@ -38,6 +40,8 @@ class Client(discord.Client):
         self.fail_role = None
         self.challenge_channel: discord.TextChannel = None
         self.log_channel: discord.TextChannel = None
+        self.stats_channel: discord.TextChannel = None
+        self.stats_message: discord.Message = None
 
         # intents
         intents = discord.Intents.default()
@@ -58,7 +62,6 @@ class Client(discord.Client):
         self.new_members = dict()
 
     async def setup_hook(self) -> None:
-        self.fetch_hypixel_task.start()
 
         # load config file
         configfile = open('config.yml', 'r')
@@ -72,7 +75,12 @@ class Client(discord.Client):
         self.fail_role = self.target_guild.get_role(config['fail-role-id'])
         self.challenge_channel = await self.target_guild.fetch_channel(config['challenge-channel-id'])
         self.log_channel = await self.target_guild.fetch_channel(config['log-channel-id'])
+        self.stats_channel = await self.target_guild.fetch_channel(config['stats-channel-id'])
+        self.stats_message = await self.stats_channel.fetch_message(config['stats-message-id'])
         configfile.close()
+
+        self.fetch_hypixel_task.start()
+        self.update_experiment_embed.start()
 
     async def on_ready(self):
         await tree.sync()
@@ -118,6 +126,7 @@ class Client(discord.Client):
                                       "Congratulations on passing the #read-me challenge first try!\n"
                                       "You have been given a special role as a bonus!\n"
                                       "**You may now access the rest of the server!**")
+                    update_experiment_stats(True)
                     await self.log_channel.send(f"{member.mention} PASSED the challenge as a NEW user.\n"
                                                 f"They used the {emoji.name} emoji.")
                 else:
@@ -134,6 +143,7 @@ class Client(discord.Client):
                                                                 f"It looks like you did something wrong. **Pay "
                                                                 f"attention**, then try again.")
                     await message.delete(delay=10)
+                    update_experiment_stats(False)
                     await self.log_channel.send(f"{member.mention} failed the challenge as a NEW user.\n"
                                                 f"They used the {emoji.name} emoji.")
                 else:
@@ -172,6 +182,18 @@ class Client(discord.Client):
             print("No new threads found!")
         print("------------")
 
+    @tasks.loop(seconds=3600)
+    async def update_experiment_embed(self):
+        stats = fetch_experiment_stats()
+
+        current_time = datetime.datetime.now()
+        embed = discord.Embed(title="#read-me challenge stats", color=10246582, timestamp=current_time)
+        embed.add_field(name="Passed", value=stats['passed'])
+        embed.add_field(name="Failed", value=stats['failed'])
+        embed.add_field(name='No response', value=stats['timedout'])
+
+        await self.stats_message.edit(content="", embed=embed)
+
 
 async def delay(coro, seconds):
     await asyncio.sleep(seconds)
@@ -200,6 +222,7 @@ async def remove_member_from_new_members(client, member: discord.Member):
                           "You did not make an attempt to complete the #read-me challenge within 15 minutes.\n"
                           "You have been given a special role as a bonus!\n"
                           "**You may now access the rest of the server!**")
+        update_experiment_stats(False, timed_out=True)
         await client.log_channel.send(f"{member.mention} did not attempt the challenge within 15 minutes.")
     else:
         # The member made an attempt but did not pass within the time limit
@@ -207,6 +230,7 @@ async def remove_member_from_new_members(client, member: discord.Member):
                           "I noticed that you attempted the #read-me challenge, but you never finished.\n"
                           "**You may now access the rest of the server!**\n"
                           "You have been given a special role as a bonus!")
+        update_experiment_stats(None, timed_out=True)
         await client.log_channel.send(f"{member.mention} attempted the challenge, but did not pass within 15 minutes.")
 
 
