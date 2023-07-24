@@ -37,6 +37,7 @@ class Client(discord.Client):
         self.pass_role = None
         self.fail_role = None
         self.challenge_channel: discord.TextChannel = None
+        self.log_channel: discord.TextChannel = None
 
         # intents
         intents = discord.Intents.default()
@@ -70,6 +71,7 @@ class Client(discord.Client):
         self.pass_role = self.target_guild.get_role(config['pass-role-id'])
         self.fail_role = self.target_guild.get_role(config['fail-role-id'])
         self.challenge_channel = await self.target_guild.fetch_channel(config['challenge-channel-id'])
+        self.log_channel = await self.target_guild.fetch_channel(config['log-channel-id'])
         configfile.close()
 
     async def on_ready(self):
@@ -116,11 +118,11 @@ class Client(discord.Client):
                                       "Congratulations on passing the #read-me challenge first try!\n"
                                       "You have been given a special role as a bonus!\n"
                                       "**You may now access the rest of the server!**")
-                    print(f"{member.name} PASSED the challenge as a NEW user.")
+                    await self.log_channel.send(f"{member.name} PASSED the challenge as a NEW user.")
                 else:
                     # grant member role even though carl-bot will likely do it
-                    print(f"{member.name} PASSED the challenge as a REGULAR user.")
                     await member.add_roles(self.member_role, reason="Passed the entry challenge")
+                    await self.log_channel.send(f"{member.name} PASSED the challenge as a REGULAR user.")
             else:
                 if member.id in self.new_members:
                     # remove from dictionary, but do not cancel the task
@@ -130,15 +132,15 @@ class Client(discord.Client):
                                                                 f"It looks like you did something wrong. **Pay "
                                                                 f"attention**, then try again.")
                     await message.delete(delay=10)
-                    print(f"{member.name} failed the challenge as a NEW user.\n"
-                          f"They used the {emoji.name} emoji.")
+                    await self.log_channel.send(f"{member.name} failed the challenge as a NEW user.\n"
+                                                f"They used the {emoji.name} emoji.")
                 else:
                     message = await self.challenge_channel.send(f"{member.mention}, "
                                                                 f"It looks like you did something wrong. **Pay "
                                                                 f"attention**, then try again.")
                     await message.delete(delay=10)
-                    print(f"{member.name} failed the challenge as a REGULAR user.\n"
-                          f"They used the {emoji.name} emoji.")
+                    await self.log_channel.send(f"{member.name} failed the challenge as a REGULAR user.\n"
+                                                f"They used the {emoji.name} emoji.")
 
     @tasks.loop(seconds=60)
     async def fetch_hypixel_task(self):
@@ -179,7 +181,7 @@ async def remove_member_from_new_members(client, member: discord.Member):
 
     # Make sure the user doesn't have preexisting roles
     if client.member_role in member.roles:
-        print(f"{member.name} had a timer ticking, but they already have the Member role.")
+        await client.log_channel.send(f"{member.name} ran out of time, but they seem to already have the Member role.")
         if member.id in client.new_members:
             del client.new_members[member.id]
         return
@@ -195,14 +197,14 @@ async def remove_member_from_new_members(client, member: discord.Member):
                           "You did not make an attempt to complete the #read-me challenge within 15 minutes.\n"
                           "You have been given a special role as a bonus!\n"
                           "**You may now access the rest of the server!**")
-        print(f"{member.name} did not attempt the challenge within 15 minutes.")
+        await client.log_channel.send(f"{member.name} did not attempt the challenge within 15 minutes.")
     else:
         # The member made an attempt but did not pass within the time limit
         await member.send("**Welcome to the Pit Community Discord Server!**\n"
                           "I noticed that you attempted the #read-me challenge, but you never finished.\n"
                           "**You may now access the rest of the server!**\n"
                           "You have been given a special role as a bonus!")
-        print(f"{member.name} attempted the challenge, but did not pass within 15 minutes.")
+        await client.log_channel.send(f"{member.name} attempted the challenge, but did not pass within 15 minutes.")
 
 
 def post_new_thread(client, rss, thread_entry):
