@@ -182,7 +182,7 @@ class Client(discord.Client):
             print("No new threads found!")
         print("------------")
 
-    @tasks.loop(seconds=3600)
+    @tasks.loop(seconds=1800)
     async def update_experiment_embed(self):
         stats = fetch_experiment_stats()
 
