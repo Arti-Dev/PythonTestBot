@@ -11,7 +11,8 @@ import yaml
 from discord import app_commands, PartialEmoji
 from discord.ext import tasks
 
-from utils import hypixel_date_to_timestamp, save_new_guid, save_default_config, update_experiment_stats, fetch_experiment_stats
+from utils import hypixel_date_to_timestamp, save_new_guid, save_default_config, update_experiment_stats, \
+    fetch_experiment_stats
 
 # check if the last guid file exists
 path = './bestguid.txt'
@@ -141,11 +142,13 @@ class Client(discord.Client):
         update_experiment_stats(True)
         await self.log_channel.send(f"{member.mention} PASSED the challenge as a NEW user.\n"
                                     f"They used the {emoji.name} emoji.")
+
     async def pass_regular(self, member, emoji):
         # grant member role even though carl-bot will likely do it
         await member.add_roles(self.member_role, reason="Passed the entry challenge")
         await self.log_channel.send(f"{member.mention} PASSED the challenge as a REGULAR user.\n"
                                     f"They used the {emoji.name} emoji.")
+
     async def fail_new(self, member, emoji):
         # remove from dictionary, but do not cancel the task
         del self.new_members[member.id]
@@ -158,8 +161,10 @@ class Client(discord.Client):
         update_experiment_stats(False)
         await self.log_channel.send(f"{member.mention} failed the challenge as a NEW user.\n"
                                     f"They used the {emoji.name} emoji.")
+
     async def fail_regular(self, member, emoji):
-        message = await self.challenge_channel.send(f"{member.mention}, It looks like you did something wrong. **Pay "f"attention**, then try again.")
+        message = await self.challenge_channel.send(
+            f"{member.mention}, It looks like you did something wrong. **Pay "f"attention**, then try again.")
         await message.delete(delay=10)
         await self.log_channel.send(f"{member.mention} failed the challenge as a REGULAR user.\n"
                                     f"They used the {emoji.name} emoji.")
