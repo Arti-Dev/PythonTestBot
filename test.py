@@ -91,7 +91,7 @@ class Client(discord.Client):
     async def on_member_join(self, member: discord.Member):
         # only track users in the target server
         if member.guild.id == self.target_guild.id:
-            await self.log_channel.send(f"{member.name} with id {member.id} joined!")
+            await self.log_channel.send(f"{member.mention} with id {member.id} joined!")
             task = self.loop.create_task(delay(
                 remove_member_from_new_members(self, member),
                 60 * 15))
@@ -100,7 +100,7 @@ class Client(discord.Client):
 
     async def on_member_remove(self, member: discord.Member):
         if member.id in self.new_members:
-            await self.log_channel.send(f"{member.name} with id {member.id} left before they could pass the challenge!")
+            await self.log_channel.send(f"{member.mention} with id {member.id} left before they could pass the challenge!")
             self.new_members[member.id].cancel()
             del self.new_members[member.id]
 
