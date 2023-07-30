@@ -117,43 +117,52 @@ class Client(discord.Client):
 
             if (emoji.is_unicode_emoji() and code == 127881) or (emoji.name == 'tada'):
                 if member.id in self.new_members:
-                    # there is no need for this task anymore
-                    self.new_members[member.id].cancel()
-
-                    del self.new_members[member.id]
-                    await member.add_roles(self.pass_role, self.member_role,
-                                           reason="Passed the entry challenge as a new member")
-                    await member.send("**Welcome to the Pit Community Discord Server!**\n"
-                                      "Congratulations on passing the #read-me challenge first try!\n"
-                                      "You have been given a special role as a bonus!\n"
-                                      "**You may now access the rest of the server!**")
-                    update_experiment_stats(True)
-                    await self.log_channel.send(f"{member.mention} PASSED the challenge as a NEW user.\n"
-                                                f"They used the {emoji.name} emoji.")
+                    await self.pass_new(member, emoji)
                 else:
-                    # grant member role even though carl-bot will likely do it
-                    await member.add_roles(self.member_role, reason="Passed the entry challenge")
-                    await self.log_channel.send(f"{member.mention} PASSED the challenge as a REGULAR user.\n"
-                                                f"They used the {emoji.name} emoji.")
+                    await self.pass_regular(member, emoji)
             else:
                 if member.id in self.new_members:
-                    # remove from dictionary, but do not cancel the task
-                    del self.new_members[member.id]
-                    await member.add_roles(self.fail_role, reason="Failed the entry challenge")
-                    message = await self.challenge_channel.send(f"{member.mention}, "
-                                                                f"It looks like you did something wrong. **Pay "
-                                                                f"attention**, then try again.")
-                    await message.delete(delay=10)
-                    update_experiment_stats(False)
-                    await self.log_channel.send(f"{member.mention} failed the challenge as a NEW user.\n"
-                                                f"They used the {emoji.name} emoji.")
+                    await self.fail_new(member, emoji)
                 else:
-                    message = await self.challenge_channel.send(f"{member.mention}, "
-                                                                f"It looks like you did something wrong. **Pay "
-                                                                f"attention**, then try again.")
-                    await message.delete(delay=10)
-                    await self.log_channel.send(f"{member.mention} failed the challenge as a REGULAR user.\n"
-                                                f"They used the {emoji.name} emoji.")
+                    await self.fail_regular(member, emoji)
+
+    async def pass_new(self, member, emoji):
+        # there is no need for this task anymore
+        self.new_members[member.id].cancel()
+
+        del self.new_members[member.id]
+
+        await member.add_roles(self.pass_role, self.member_role,
+                               reason="Passed the entry challenge as a new member")
+        await member.send("**Welcome to the Pit Community Discord Server!**\n"
+                          "Congratulations on passing the #read-me challenge first try!\n"
+                          "You have been given a special role as a bonus!\n"
+                          "**You may now access the rest of the server!**")
+        update_experiment_stats(True)
+        await self.log_channel.send(f"{member.mention} PASSED the challenge as a NEW user.\n"
+                                    f"They used the {emoji.name} emoji.")
+    async def pass_regular(self, member, emoji):
+        # grant member role even though carl-bot will likely do it
+        await member.add_roles(self.member_role, reason="Passed the entry challenge")
+        await self.log_channel.send(f"{member.mention} PASSED the challenge as a REGULAR user.\n"
+                                    f"They used the {emoji.name} emoji.")
+    async def fail_new(self, member, emoji):
+        # remove from dictionary, but do not cancel the task
+        del self.new_members[member.id]
+
+        await member.add_roles(self.fail_role, reason="Failed the entry challenge")
+        message = await self.challenge_channel.send(f"{member.mention}, "
+                                                    f"It looks like you did something wrong. **Pay "
+                                                    f"attention**, then try again.")
+        await message.delete(delay=10)
+        update_experiment_stats(False)
+        await self.log_channel.send(f"{member.mention} failed the challenge as a NEW user.\n"
+                                    f"They used the {emoji.name} emoji.")
+    async def fail_regular(self, member, emoji):
+        message = await self.challenge_channel.send(f"{member.mention}, It looks like you did something wrong. **Pay "f"attention**, then try again.")
+        await message.delete(delay=10)
+        await self.log_channel.send(f"{member.mention} failed the challenge as a REGULAR user.\n"
+                                    f"They used the {emoji.name} emoji.")
 
     @tasks.loop(seconds=60)
     async def fetch_hypixel_task(self):
