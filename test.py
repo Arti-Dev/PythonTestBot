@@ -130,8 +130,12 @@ class Client(discord.Client):
     async def pass_new(self, member, emoji):
         # there is no need for this task anymore
         self.new_members[member.id].cancel()
-
         del self.new_members[member.id]
+
+        # if they already have the stupid role, do not count this towards stats
+        if self.fail_role in member.roles:
+            await self.pass_regular(member, emoji)
+            return
 
         await member.add_roles(self.pass_role, self.member_role,
                                reason="Passed the entry challenge as a new member")
@@ -152,6 +156,11 @@ class Client(discord.Client):
     async def fail_new(self, member, emoji):
         # remove from dictionary, but do not cancel the task
         del self.new_members[member.id]
+
+        # if they already have the stupid role, do not count this towards stats
+        if self.fail_role in member.roles:
+            await self.fail_regular(member, emoji)
+            return
 
         await member.add_roles(self.fail_role, reason="Failed the entry challenge")
         message = await self.challenge_channel.send(f"{member.mention}, "
