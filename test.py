@@ -2,13 +2,12 @@ import asyncio
 import datetime
 import os.path
 import random
-import time
 
 import discord
 import feedparser
 import requests
 import yaml
-from discord import app_commands, PartialEmoji
+from discord import app_commands
 from discord.ext import tasks
 
 from utils import hypixel_date_to_timestamp, save_new_guid, save_default_config, update_experiment_stats, \
@@ -32,6 +31,8 @@ file.close()
 
 class Client(discord.Client):
     def __init__(self):
+
+        self.enable_experiment = False
 
         self.target_message_id = None
         self.webhook = None
@@ -68,6 +69,8 @@ class Client(discord.Client):
         configfile = open('config.yml', 'r')
         config = yaml.safe_load(configfile)
 
+        self.enable_experiment = config['enable-experiment']
+
         self.target_message_id = config['message-id']
         self.webhook = config['url']
         self.target_guild = await self.fetch_guild(config['guild-id'])
@@ -89,6 +92,7 @@ class Client(discord.Client):
         await self.loop.create_task(list_servers(self))
 
     async def on_member_join(self, member: discord.Member):
+        if not self.enable_experiment: return
         # only track users in the target server
         if member.guild.id == self.target_guild.id:
             await self.log_channel.send(f"{member.mention} with id {member.id} joined!")
@@ -99,12 +103,14 @@ class Client(discord.Client):
             self.new_members[member.id] = task
 
     async def on_member_remove(self, member: discord.Member):
+        if not self.enable_experiment: return
         if member.id in self.new_members:
             await self.log_channel.send(f"{member.mention} with id {member.id} left before they could pass the challenge!")
             self.new_members[member.id].cancel()
             del self.new_members[member.id]
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        if not self.enable_experiment: return
         if payload.message_id == self.target_message_id and payload.event_type == 'REACTION_ADD':
             emoji = payload.emoji
             member = payload.member
@@ -208,6 +214,7 @@ class Client(discord.Client):
 
     @tasks.loop(seconds=1800)
     async def update_experiment_embed(self):
+        if not self.enable_experiment: return
         stats = fetch_experiment_stats()
 
         current_time = datetime.datetime.now()
@@ -225,6 +232,7 @@ async def delay(coro, seconds):
 
 
 async def remove_member_from_new_members(client, member: discord.Member):
+    if not client.enable_experiment: return
     # If this method is called, it means that the challenge was not solved.
 
     # Make sure the user doesn't have preexisting roles
