@@ -29,7 +29,7 @@ class Client(discord.Client):
         self.pass_role = None
         self.fail_role = None
         self.challenge_channel: discord.TextChannel = None
-        self.log_channel: discord.TextChannel = None
+        self.experiment_log_channel: discord.TextChannel = None
         self.stats_channel: discord.TextChannel = None
         self.stats_message: discord.Message = None
 
@@ -58,7 +58,7 @@ class Client(discord.Client):
         self.pass_role = self.target_guild.get_role(config['pass-role-id'])
         self.fail_role = self.target_guild.get_role(config['fail-role-id'])
         self.challenge_channel = await self.target_guild.fetch_channel(config['challenge-channel-id'])
-        self.log_channel = await self.target_guild.fetch_channel(config['log-channel-id'])
+        self.experiment_log_channel = await self.target_guild.fetch_channel(config['experiment-log-channel-id'])
         self.stats_channel = await self.target_guild.fetch_channel(config['stats-channel-id'])
         self.stats_message = await self.stats_channel.fetch_message(config['stats-message-id'])
         configfile.close()
@@ -73,7 +73,7 @@ class Client(discord.Client):
     async def on_member_join(self, member: discord.Member):
         # only track users in the target server
         if member.guild.id == self.target_guild.id:
-            await self.log_channel.send(f"{member.mention} with id {member.id} joined!")
+            await self.experiment_log_channel.send(f"{member.mention} with id {member.id} joined!")
             task = self.loop.create_task(delay(
                 remove_member_from_new_members(self, member),
                 60 * 15))
@@ -82,7 +82,7 @@ class Client(discord.Client):
 
     async def on_member_remove(self, member: discord.Member):
         if member.id in self.new_members:
-            await self.log_channel.send(f"{member.mention} with id {member.id} left before they could pass the challenge!")
+            await self.experiment_log_channel.send(f"{member.mention} with id {member.id} left before they could pass the challenge!")
             self.new_members[member.id].cancel()
             del self.new_members[member.id]
 
@@ -126,13 +126,13 @@ class Client(discord.Client):
                           "You have been given a special role as a bonus!\n"
                           "**You may now access the rest of the server!**")
         update_experiment_stats(True)
-        await self.log_channel.send(f"{member.mention} PASSED the challenge as a NEW user.\n"
+        await self.experiment_log_channel.send(f"{member.mention} PASSED the challenge as a NEW user.\n"
                                     f"They used the {emoji.name} emoji.")
 
     async def pass_regular(self, member, emoji):
         # grant member role even though carl-bot will likely do it
         await member.add_roles(self.member_role, reason="Passed the entry challenge")
-        await self.log_channel.send(f"{member.mention} PASSED the challenge as a REGULAR user.\n"
+        await self.experiment_log_channel.send(f"{member.mention} PASSED the challenge as a REGULAR user.\n"
                                     f"They used the {emoji.name} emoji.")
 
     async def fail_new(self, member, emoji):
@@ -150,14 +150,14 @@ class Client(discord.Client):
                                                     f"attention**, then try again.")
         await message.delete(delay=10)
         update_experiment_stats(False)
-        await self.log_channel.send(f"{member.mention} failed the challenge as a NEW user.\n"
+        await self.experiment_log_channel.send(f"{member.mention} failed the challenge as a NEW user.\n"
                                     f"They used the {emoji.name} emoji.")
 
     async def fail_regular(self, member, emoji):
         message = await self.challenge_channel.send(
             f"{member.mention}, It looks like you did something wrong. **Pay "f"attention**, then try again.")
         await message.delete(delay=10)
-        await self.log_channel.send(f"{member.mention} failed the challenge as a REGULAR user.\n"
+        await self.experiment_log_channel.send(f"{member.mention} failed the challenge as a REGULAR user.\n"
                                     f"They used the {emoji.name} emoji.")
 
     @tasks.loop(seconds=1800)
@@ -179,13 +179,12 @@ async def delay(coro, seconds):
 
 
 async def remove_member_from_new_members(client, member: discord.Member):
-    if not client.enable_experiment: return
     # If this method is called, it means that the challenge was not solved.
 
     # Make sure the user doesn't have preexisting roles
     if client.member_role in member.roles:
         if member.id in client.new_members:
-            await client.log_channel.send(
+            await client.experiment_log_channel.send(
                 f"{member.mention} ran out of time, but they seem to already have the Member role.")
             del client.new_members[member.id]
         return
@@ -202,14 +201,14 @@ async def remove_member_from_new_members(client, member: discord.Member):
                           "You have been given a special role as a bonus!\n"
                           "**You may now access the rest of the server!**")
         update_experiment_stats(None, timed_out=True)
-        await client.log_channel.send(f"{member.mention} did not attempt the challenge within 15 minutes.")
+        await client.experiment_log_channel.send(f"{member.mention} did not attempt the challenge within 15 minutes.")
     else:
         # The member made an attempt but did not pass within the time limit
         await member.send("**Welcome to the Pit Community Discord Server!**\n"
                           "I noticed that you attempted the #read-me challenge, but you never finished.\n"
                           "**You may now access the rest of the server!**\n"
                           "You have been given a special role as a bonus!")
-        await client.log_channel.send(f"{member.mention} attempted the challenge, but did not pass within 15 minutes.")
+        await client.experiment_log_channel.send(f"{member.mention} attempted the challenge, but did not pass within 15 minutes.")
 
 async def list_servers(client):
     await client.wait_until_ready()
