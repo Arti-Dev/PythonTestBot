@@ -58,6 +58,7 @@ class Client(discord.Client):
         configfile.close()
 
         self.fetch_hypixel_task.start()
+        await self.send_log_message("Starting up!")
 
     async def on_ready(self):
         await tree.sync()
@@ -66,10 +67,10 @@ class Client(discord.Client):
 
     @tasks.loop(seconds=60)
     async def fetch_hypixel_task(self):
-        print(f"Fetching from Hypixel RSS!")
+        # print(f"Fetching from Hypixel RSS!")
         rss = feedparser.parse("https://hypixel.net/the-pit/index.rss")
         entries = rss.entries
-        print(f"Current best guid is {self.best_guid}")
+        # print(f"Current best guid is {self.best_guid}")
         guid_to_entry = dict()
         for entry in entries:
             guid = int(entry.guid)
@@ -82,15 +83,20 @@ class Client(discord.Client):
         # post only the first thread that is newer than the previous posted thread
         if len(guids) > 0:
             target_guid = guids[0]
-            post_new_thread(self, rss, guid_to_entry[target_guid])
+            await post_new_thread(self, rss, guid_to_entry[target_guid])
             self.best_guid = target_guid
-            print(f"New best guid is {self.best_guid}. Writing to disk.")
+            await self.send_log_message(f"New best guid is {self.best_guid}. Writing to disk.")
             if len(guids) > 1:
-                print(f"There are {len(guids) - 1} thread(s) in queue. They will be addressed in the next cycle.")
+                await self.send_log_message(f"There are {len(guids) - 1} thread(s) in queue. They will be addressed "
+                                            f"in the next cycle.")
             save_new_guid(self.best_guid)
         else:
-            print("No new threads found!")
-        print("------------")
+            pass
+            # print("No new threads found!")
+        # print("------------")
+
+    async def send_log_message(self, message: str):
+        await self.log_channel.send(message)
 
 
 async def delay(coro, seconds):
@@ -98,7 +104,7 @@ async def delay(coro, seconds):
     await coro
 
 
-def post_new_thread(client, rss, thread_entry):
+async def post_new_thread(client, rss, thread_entry):
     forum_title = rss.feed.title
     title = thread_entry.title
     link = thread_entry.link
@@ -117,9 +123,9 @@ def post_new_thread(client, rss, thread_entry):
         ]}
     r = requests.post(url=client.webhook, json=json)
     if r.status_code != 204:
-        print(f"There was an error posting the latest thread. guid: {thread_guid}")
+        await client.send_log_message(f"There was an error posting the latest thread. guid: {thread_guid}")
     else:
-        print(f"Successfully posted: {forum_title}\n{title}\n{link}\n{creator}\n{timestamp}\nguid: {thread_guid}")
+        await client.send_log_message(f"Successfully posted: {forum_title}\n{title}\n{link}\n{creator}\n{timestamp}\nguid: {thread_guid}")
 
 
 async def list_servers(client):
