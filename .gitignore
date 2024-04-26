@@ -1,0 +1,9 @@
+config.yml
+token.txt
+/legacy/
+bestguid.txt
+/venv/
+/__pycache__/
+/backups/
+start.sh
+stats.yml
