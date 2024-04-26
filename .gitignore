@@ -1,10 +1,9 @@
-/venv/
-/backups/
-/legacy/
 config.yml
 token.txt
 /legacy/
 bestguid.txt
-__pycache__/utils.cpython-311.pyc
+/venv/
+/__pycache__/
+/backups/
+start.sh
 stats.yml
-.idea/misc.xml
