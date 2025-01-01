@@ -167,6 +167,12 @@ async def spamarti(interaction: discord.Interaction, string: str):
     await user.send(string)
     await interaction.response.send_message(f"Sent '{string}' to Arti_Creep!")
 
+@tree.command(name='planetpit',
+              description="Send the Planet Pit invite in chat\n(for those who don't know how to do research")
+async def planetpit(interaction: discord.Interation):
+    await interaction.channel.send("here's the invite to Planet Pit, you ungrateful whelp\nhttps://discord.gg/pit")
+    await interaction.response.send_message("Sent Planet Pit invite in chat!")
+
 
 @tree.command(name='random',
               description="Gives a random number from 1 to 1000")
