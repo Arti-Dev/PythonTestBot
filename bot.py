@@ -101,14 +101,16 @@ class Client(discord.Client):
         await self.log_channel.send(message)
 
     async def on_message(self, message: discord.Message):
+        if message.author.id == self.user.id: return
         if message.channel.id != self.trade_channel.id: return
         maxLines = 5
         maxChars = maxLines * 100
-        if len(message.content) < maxChars:
+        if len(message.content) > maxChars:
             await message.channel.send("test")
         pass
 
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
+        if before.author.id == self.user.id: return
         if after.channel.id != self.trade_channel.id: return
         await after.channel.send(f"{len(after.content)}")
 
