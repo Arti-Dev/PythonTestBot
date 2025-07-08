@@ -32,6 +32,7 @@ class Client(discord.Client):
         self.webhook = None
         self.target_guild = None
         self.log_channel: discord.TextChannel = None
+        self.trade_channel: discord.TextChannel = None
 
         # intents
         intents = discord.Intents.default()
@@ -55,6 +56,7 @@ class Client(discord.Client):
         self.webhook = config['url']
         self.target_guild = await self.fetch_guild(config['guild-id'])
         self.log_channel = await self.target_guild.fetch_channel(config['log-channel-id'])
+        self.trade_channel = await self.target_guild.fetch_channel(config['trade-channel-id'])
         configfile.close()
 
         self.fetch_hypixel_task.start()
@@ -98,6 +100,17 @@ class Client(discord.Client):
     async def send_log_message(self, message: str):
         await self.log_channel.send(message)
 
+    async def on_message(self, message: discord.Message):
+        if message.channel.id != self.trade_channel.id: return
+        maxLines = 5
+        maxChars = maxLines * 100
+        if len(message.content) < maxChars:
+            await message.channel.send("test")
+        pass
+
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):
+        if after.channel.id != self.trade_channel.id: return
+        await after.channel.send(f"{len(after.content)}")
 
 async def delay(coro, seconds):
     await asyncio.sleep(seconds)
