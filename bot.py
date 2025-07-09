@@ -109,11 +109,11 @@ class Client(discord.Client):
         if message.author.id == self.user.id: return
         if message.channel.id != self.trade_channel.id: return
         if (len(message.content) > self.trade_char_limit
-                or message.content.count('\n') > self.trade_line_limit):
+                or message.content.count('\n') >= self.trade_line_limit):
             await message.delete()
             await message.channel.send("Sorry - your message is too long."
                                        f"\nThe maximum length is {self.trade_line_limit} lines or "
-                                       f"{self.trade_char_limit} characters.", delete_after=3.0)
+                                       f"{self.trade_char_limit} characters.", delete_after=10.0)
 
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
         if before.author.id == self.user.id: return
