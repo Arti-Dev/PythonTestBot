@@ -34,6 +34,9 @@ class Client(discord.Client):
         self.log_channel: discord.TextChannel = None
         self.trade_channel: discord.TextChannel = None
 
+        self.trade_line_limit = 5
+        self.trade_char_limit = 500
+
         # intents
         intents = discord.Intents.default()
         intents.message_content = True
@@ -57,6 +60,8 @@ class Client(discord.Client):
         self.target_guild = await self.fetch_guild(config['guild-id'])
         self.log_channel = await self.target_guild.fetch_channel(config['log-channel-id'])
         self.trade_channel = await self.target_guild.fetch_channel(config['trade-channel-id'])
+        self.trade_char_limit = config['trade-char-limit']
+        self.trade_line_limit = config['trade-line-limit']
         configfile.close()
 
         self.fetch_hypixel_task.start()
@@ -103,16 +108,23 @@ class Client(discord.Client):
     async def on_message(self, message: discord.Message):
         if message.author.id == self.user.id: return
         if message.channel.id != self.trade_channel.id: return
-        maxLines = 5
-        maxChars = maxLines * 100
-        if len(message.content) > maxChars:
-            await message.channel.send("test")
-        pass
+        if (len(message.content) > self.trade_char_limit
+                or message.content.count('\n') > self.trade_line_limit):
+            await message.delete()
+            await message.channel.send("Sorry - your message is too long."
+                                       f"\nThe maximum length is {self.trade_line_limit} lines or "
+                                       f"{self.trade_char_limit} characters.", delete_after=3.0)
 
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
         if before.author.id == self.user.id: return
         if after.channel.id != self.trade_channel.id: return
-        await after.channel.send(f"{len(after.content)}")
+        if (len(after.content) > self.trade_char_limit
+                or after.content.count('\n') > self.trade_line_limit):
+            await after.delete()
+            await after.channel.send("Sorry - your message is too long."
+                                       f"\nThe maximum length is {self.trade_line_limit} lines or "
+                                       f"{self.trade_char_limit} characters.", delete_after=3.0)
+
 
 async def delay(coro, seconds):
     await asyncio.sleep(seconds)
